@@ -26,10 +26,8 @@
         }
         .btn-cyan { color: #00e5ff; border: 2px solid #00e5ff; box-shadow: 0 0 15px #00e5ff; text-shadow: 0 0 5px #00e5ff; }
         .btn-cyan:hover { background: #00e5ff; color: #07070f; box-shadow: 0 0 30px #00e5ff; }
-
         .btn-restart { color: #ff2bd6; border: 2px solid #ff2bd6; box-shadow: 0 0 15px #ff2bd6; text-shadow: 0 0 5px #ff2bd6; }
         .btn-restart:hover { background: #ff2bd6; color: #07070f; box-shadow: 0 0 30px #ff2bd6; }
-        
         .btn-win { color: #b6ff3b; border: 2px solid #b6ff3b; box-shadow: 0 0 15px #b6ff3b; text-shadow: 0 0 5px #b6ff3b; }
         .btn-win:hover { background: #b6ff3b; color: #07070f; box-shadow: 0 0 30px #b6ff3b; }
 
@@ -39,10 +37,7 @@
             text-shadow: 0 0 10px #00e5ff; pointer-events: none; z-index: 5;
         }
 
-        #level-list {
-            display: flex; flex-wrap: wrap; justify-content: center;
-            gap: 15px; max-width: 800px; margin-top: 10px;
-        }
+        #level-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; max-width: 800px; margin-top: 10px; }
         .level-card {
             background: rgba(0, 229, 255, 0.1); border: 2px solid #00e5ff;
             border-radius: 10px; padding: 15px; width: 100%; max-width: 250px;
@@ -54,12 +49,8 @@
         .level-card span { color: #ff2bd6; font-size: 14px; font-weight: bold; }
 
         /* === МОБИЛЬНОЕ УПРАВЛЕНИЕ === */
-        #mobile-controls {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 20; display: none; 
-        }
+        #mobile-controls { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 20; display: none; }
         body:not(.in-menu) #mobile-controls { display: block; }
-
         .d-pad { position: absolute; bottom: 30px; left: 30px; width: 150px; height: 150px; pointer-events: auto; }
         .d-btn { position: absolute; background: rgba(0, 229, 255, 0.15); border: 2px solid rgba(0, 229, 255, 0.5); border-radius: 10px; box-shadow: 0 0 10px rgba(0, 229, 255, 0.3); }
         .d-btn.active { background: rgba(0, 229, 255, 0.5); box-shadow: 0 0 20px #00e5ff; }
@@ -67,7 +58,6 @@
         .d-down { bottom: 0; left: 50px; width: 50px; height: 50px; }
         .d-left { top: 50px; left: 0; width: 50px; height: 50px; }
         .d-right { top: 50px; right: 0; width: 50px; height: 50px; }
-
         #dash-btn {
             position: absolute; bottom: 40px; right: 40px; width: 100px; height: 100px; border-radius: 50%;
             background: rgba(255, 43, 214, 0.15); border: 2px solid rgba(255, 43, 214, 0.6);
@@ -78,39 +68,29 @@
 
         /* === СТИЛЬ ВИРУСА === */
         @keyframes virusPulse {
-            0% { 
-                border-color: #ffaa00; 
-                box-shadow: 0 0 30px #ffaa00, inset 0 0 20px #ffaa00; 
-                text-shadow: 0 0 20px #ffaa00;
-                transform: scale(1);
-            }
-            50% { 
-                border-color: #ff0000; 
-                box-shadow: 0 0 60px #ff0000, inset 0 0 40px #ff0000; 
-                text-shadow: 0 0 40px #ff0000;
-                transform: scale(1.05);
-            }
-            100% { 
-                border-color: #ffaa00; 
-                box-shadow: 0 0 30px #ffaa00, inset 0 0 20px #ffaa00; 
-                text-shadow: 0 0 20px #ffaa00;
-                transform: scale(1);
-            }
+            0% { border-color: #ffaa00; box-shadow: 0 0 30px #ffaa00, inset 0 0 20px #ffaa00; text-shadow: 0 0 20px #ffaa00; transform: scale(1); }
+            50% { border-color: #ff0000; box-shadow: 0 0 60px #ff0000, inset 0 0 40px #ff0000; text-shadow: 0 0 40px #ff0000; transform: scale(1.05); }
+            100% { border-color: #ffaa00; box-shadow: 0 0 30px #ffaa00, inset 0 0 20px #ffaa00; text-shadow: 0 0 20px #ffaa00; transform: scale(1); }
         }
 
-        #qte-box {
-            width: 180px; height: 180px; 
-            border: 4px solid #ffaa00; border-radius: 20px;
-            background: rgba(255, 0, 0, 0.1);
+        #qte-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 15; /* Поверх канваса, но под мобильными кнопками */
             display: flex; justify-content: center; align-items: center;
-            font-size: 80px; font-weight: bold; color: #fff;
-            cursor: pointer; user-select: none;
-            animation: virusPulse 0.8s infinite; /* Мигание */
+        }
+        
+        #qte-box {
+            width: 120px; height: 120px; /* Чуть меньше */
+            border: 4px solid #ffaa00; border-radius: 20px;
+            background: rgba(0, 0, 0, 0.8); /* Темный фон только у самой кнопки, для читаемости */
+            display: flex; justify-content: center; align-items: center;
+            font-size: 60px; font-weight: bold; color: #fff;
+            cursor: pointer; user-select: none; pointer-events: auto;
+            animation: virusPulse 0.8s infinite;
             transition: transform 0.1s;
         }
-        #qte-box:active {
-            transform: scale(0.9) !important;
-        }
+        
+        #qte-box:active { transform: scale(0.9) !important; }
     </style>
 </head>
 <body class="in-menu">
@@ -134,19 +114,16 @@
     <div id="upload-overlay" class="overlay">
         <h1 style="color: #ff2bd6; text-shadow: 0 0 20px #ff2bd6;">JSAB Clone</h1>
         <p>Выбери уровень или загрузи свой трек</p>
-        
         <div id="level-list"></div>
-        
         <div style="margin-top: 20px;">
             <input type="file" id="audio-upload" accept="audio/*" style="display: none;">
             <button class="btn btn-cyan" id="upload-btn">Загрузить свой MP3</button>
         </div>
     </div>
 
-    <!-- ОКНО ВИРУСА (QTE) -->
-    <div id="qte-overlay" class="overlay hidden" style="background: rgba(0,0,0,0.6);">
+    <!-- ОКНО ВИРУСА (БЕЗ ТЕМНОГО ФОНА) -->
+    <div id="qte-overlay" class="hidden">
         <div id="qte-box">5</div>
-        <p style="margin-top: 20px; color: #ffaa00; font-weight: bold; font-size: 22px; text-shadow: 0 0 10px #ffaa00;">УСПЕЙ НАЖАТЬ!</p>
     </div>
 
     <div id="win-overlay" class="overlay hidden">

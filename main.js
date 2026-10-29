@@ -412,13 +412,30 @@
         }
       }
 
-      if (isVirusActive) {
-        virusTimeLeft -= dt;
-        if (virusTimeLeft <= 0) {
-          failVirus();
-        }
-      }
+// ... (все начало файла до функции spawnVirus остается без изменений)
 
+  function spawnVirus() {
+    isVirusActive = true;
+    virusClicks = 5;
+    virusTimeLeft = 3.0; 
+    
+    // Рандомное появление по экрану (в процентах, чтобы работало на разных разрешениях)
+    const rx = 10 + Math.random() * 80; // от 10% до 90% ширины
+    const ry = 10 + Math.random() * 80; // от 10% до 90% высоты
+    
+    qteBox.style.position = 'absolute';
+    qteBox.style.left = `${rx}%`;
+    qteBox.style.top = `${ry}%`;
+    qteBox.style.transform = 'translate(-50%, -50%) scale(1)'; // Центрируем относительно точки
+    
+    qteBox.innerText = virusClicks;
+    qteOverlay.classList.remove('hidden');
+    
+    shakeTime = 0.2;
+    shakePower = 5;
+  }
+
+// ... (остальной код без изменений)
       if (isTrackEnded) {
         winTimer -= dt;
         if (winTimer <= 0) {

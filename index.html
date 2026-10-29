@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rhythm Game</title>
+    <style>
+        body, html { margin: 0; padding: 0; overflow: hidden; background: #07070f; font-family: sans-serif; }
+        canvas { display: block; }
+        
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background: rgba(7, 7, 15, 0.9); z-index: 10; transition: opacity 0.3s;
+        }
+        .hidden { opacity: 0; pointer-events: none; }
+        
+        h1 { margin-bottom: 10px; }
+        p { color: #c9d0ff; margin-bottom: 20px; font-size: 20px; }
+        
+        input[type="file"] {
+            color: #00e5ff; font-size: 18px; padding: 10px;
+            border: 2px dashed #00e5ff; border-radius: 8px;
+            cursor: pointer; background: rgba(0, 229, 255, 0.1);
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
+        }
+        input[type="file"]::file-selector-button {
+            background: #00e5ff; color: #07070f; border: none; padding: 10px 20px;
+            border-radius: 5px; font-weight: bold; cursor: pointer; margin-right: 15px;
+        }
+
+        .btn {
+            padding: 15px 30px; font-size: 20px; font-weight: bold;
+            background: transparent; border-radius: 8px; cursor: pointer; transition: all 0.2s;
+            margin: 10px;
+        }
+        .btn:hover { color: #07070f !important; }
+        
+        .btn-cyan { color: #00e5ff; border: 2px solid #00e5ff; box-shadow: 0 0 15px #00e5ff; text-shadow: 0 0 5px #00e5ff; }
+        .btn-cyan:hover { background: #00e5ff; box-shadow: 0 0 30px #00e5ff; }
+
+        .btn-restart { color: #ff2bd6; border: 2px solid #ff2bd6; box-shadow: 0 0 15px #ff2bd6; text-shadow: 0 0 5px #ff2bd6; }
+        .btn-restart:hover { background: #ff2bd6; box-shadow: 0 0 30px #ff2bd6; }
+        
+        .btn-win { color: #b6ff3b; border: 2px solid #b6ff3b; box-shadow: 0 0 15px #b6ff3b; text-shadow: 0 0 5px #b6ff3b; }
+        .btn-win:hover { background: #b6ff3b; box-shadow: 0 0 30px #b6ff3b; }
+
+        #ui-layer {
+            position: absolute; top: 20px; left: 20px;
+            color: white; font-family: monospace; font-size: 24px;
+            text-shadow: 0 0 10px #00e5ff; pointer-events: none; z-index: 5;
+        }
+
+        /* Сетка для уровней */
+        #level-list {
+            display: flex; flex-wrap: wrap; justify-content: center;
+            gap: 20px; max-width: 800px; margin-top: 20px;
+        }
+        .level-card {
+            background: rgba(0, 229, 255, 0.1); border: 2px solid #00e5ff;
+            border-radius: 10px; padding: 20px; width: 220px;
+            text-align: center; cursor: pointer; transition: all 0.2s;
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+        }
+        .level-card:hover {
+            background: rgba(0, 229, 255, 0.3); box-shadow: 0 0 20px #00e5ff;
+            transform: scale(1.05);
+        }
+        .level-card h3 { margin: 0 0 10px 0; color: #fff; font-size: 18px; }
+        .level-card span { color: #ff2bd6; font-size: 14px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="ui-layer" class="hidden">
+        HP: <span id="hp-display" style="color: #ff2bd6;">❤❤❤❤</span>
+    </div>
+
+    <!-- ГЛАВНОЕ МЕНЮ -->
+    <div id="upload-overlay" class="overlay">
+        <h1 style="color: #ff2bd6; text-shadow: 0 0 20px #ff2bd6;">JSAB Clone</h1>
+        <p>Выбери уровень или загрузи свой трек</p>
+        
+        <div id="level-list">
+            <!-- Сюда JS будет вставлять карточки уровней -->
+        </div>
+
+        <div style="margin-top: 30px;">
+            <input type="file" id="audio-upload" accept="audio/*" style="display: none;">
+            <button class="btn btn-cyan" id="upload-btn">Загрузить свой MP3</button>
+        </div>
+    </div>
+
+    <!-- Экраны победы и смерти -->
+    <div id="win-overlay" class="overlay hidden">
+        <h1 style="color: #b6ff3b; text-shadow: 0 0 20px #b6ff3b;">Ты победил :D!!</h1>
+        <p>Трек закончился, а ты выжил!</p>
+        <button class="btn btn-win" id="win-restart-btn">В главное меню</button>
+    </div>
+
+    <div id="death-overlay" class="overlay hidden">
+        <h1 style="color: #00e5ff; text-shadow: 0 0 20px #00e5ff;">УБИТ</h1>
+        <p>Ты потратил все 4 жизни</p>
+        <button class="btn btn-restart" id="restart-btn">Попробовать снова</button>
+        <button class="btn btn-cyan" id="death-menu-btn">В главное меню</button>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="viewport.js"></script>
+    <script src="player.js"></script>
+    <script src="obstacles.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "levels": [
+    {
+      "id": "level1",
+      "name": "Уровень 1: Q-cold",
+      "file": "music/track1.mp3",
+      "difficulty": "Легко"
+    },
+    {
+      "id": "level2",
+      "name": "Уровень 2: фрутаг.аер.",
+      "file": "music/track2.mp3",
+      "difficulty": "Средне"
+    },
+    {
+      "id": "level3",
+      "name": "Уровень 3: СЕРГЕЙ РОМАНЦЕВВ??",
+      "file": "music/boss.mp3",
+      "difficulty": "Хардкор"
+    }
+  ],
+  "menuMusic": "music/menu_theme.mp3" 
+}

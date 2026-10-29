@@ -101,12 +101,13 @@
   let winTimer = 0;
 
   // === ПЕРЕМЕННЫЕ ДЛЯ ВИРУСА (QTE) ===
-  let virusTimer = 15; // Первый вирус через 15 секунд
+  let virusTimer = 15; 
   let isVirusActive = false;
   let virusClicks = 5;
   let virusTimeLeft = 0;
-  let virusCooldown = 0; // Чтобы вирусы не спавнились друг на друге
+  let virusCooldown = 0; 
 
+  // ВОТ ЭТА ФУНКЦИЯ ОТВЕЧАЕТ ЗА КАРТОЧКИ УРОВНЕЙ
   function buildMenu() {
     levelList.innerHTML = "";
     levelsData.forEach(level => {
@@ -238,7 +239,6 @@
     isDead = false; obstacles = []; particles = []; spawnTimer = 0; shakeTime = 0;
     hp = 4; invulnTimer = 0; boredomTimer = 0; isHardcore = false; isTrackEnded = false;
     
-    // Сброс вируса
     virusTimer = 15;
     isVirusActive = false;
     virusCooldown = 0;
@@ -266,15 +266,13 @@
     hpDisplay.innerText = hearts;
   }
 
-  // === ЛОГИКА ВИРУСА ===
   function spawnVirus() {
     isVirusActive = true;
     virusClicks = 5;
-    virusTimeLeft = 3.0; // 3 секунды на клики
+    virusTimeLeft = 3.0; 
     
-    // Рандомная позиция на экране, чтобы не перекрывать кубик
-    const rx = 30 + Math.random() * 20; // 30-50% ширины
-    const ry = 30 + Math.random() * 20; // 30-50% высоты
+    const rx = 30 + Math.random() * 20; 
+    const ry = 30 + Math.random() * 20; 
     
     qteOverlay.style.left = `${rx}%`;
     qteOverlay.style.top = `${ry}%`;
@@ -284,7 +282,6 @@
     qteBox.style.background = 'rgba(255, 43, 214, 0.2)';
     qteOverlay.classList.remove('hidden');
     
-    // Небольшой скример при появлении
     shakeTime = 0.2;
     shakePower = 5;
   }
@@ -296,19 +293,16 @@
     virusClicks--;
     qteBox.innerText = virusClicks;
     
-    // Анимация
     qteBox.style.transform = 'scale(0.8)';
     setTimeout(() => qteBox.style.transform = 'scale(1)', 50);
     qteBox.style.background = 'rgba(255, 255, 255, 0.5)';
     setTimeout(() => qteBox.style.background = 'rgba(255, 43, 214, 0.2)', 100);
 
     if (virusClicks <= 0) {
-      // ВИРУС УНИЧТОЖЕН
       isVirusActive = false;
       qteOverlay.classList.add('hidden');
-      virusCooldown = 10; // Следующий не раньше чем через 10 сек
+      virusCooldown = 10; 
       
-      // Эффект взрыва частиц
       for (let i = 0; i < 20; i++) {
         const angle = Math.random() * Math.PI * 2; const speed = 100 + Math.random() * 300;
         particles.push({ 
@@ -329,8 +323,7 @@
     isVirusActive = false;
     qteOverlay.classList.add('hidden');
     
-    // Штраф: взрыв вируса
-    hp--; // Отнимаем 1 жизнь
+    hp--; 
     updateHpDisplay();
     shakeTime = 0.5;
     shakePower = 20;
@@ -341,7 +334,6 @@
     }
   }
 
-  // === ИГРОВАЯ ЛОГИКА ===
   function spawnObstacle() {
     if (!window.Obstacle) return;
     const speedMult = isHardcore ? 1.2 : 1.0;
@@ -408,7 +400,6 @@
     while (accumulator >= C.loop.fixedDt && steps < C.loop.maxStepsPerFrame) {
       const dt = C.loop.fixedDt;
 
-      // ЛОГИКА СПАВНА ВИРУСА
       if (isPlaying && !isDead && !isTrackEnded && !isVirusActive) {
         if (virusCooldown > 0) {
           virusCooldown -= dt;
@@ -416,12 +407,11 @@
           virusTimer -= dt;
           if (virusTimer <= 0) {
             spawnVirus();
-            virusTimer = 15 + Math.random() * 5; // Следующий через 15-20 секунд
+            virusTimer = 15 + Math.random() * 5; 
           }
         }
       }
 
-      // Обработка таймера вируса
       if (isVirusActive) {
         virusTimeLeft -= dt;
         if (virusTimeLeft <= 0) {
@@ -497,7 +487,6 @@
       viewport.ctx.fillText(`Меню через ${Math.ceil(winTimer)}...`, C.field.width / 2, C.field.height / 2 + 30); viewport.ctx.shadowBlur = 0;
     }
 
-    // ВРЕМЯ ВИРУСА
     if (isVirusActive) {
       viewport.ctx.fillStyle = '#ff2bd6'; viewport.ctx.font = 'bold 24px sans-serif'; viewport.ctx.textAlign = 'center';
       viewport.ctx.fillText(`ВИРУС: ${virusTimeLeft.toFixed(1)}s`, C.field.width / 2, 80);
@@ -517,6 +506,7 @@
     requestAnimationFrame(loop);
   }
 
+  // ЗАПУСК МЕНЮ (ВОТ ЭТА СТРОЧКА БЫЛА ПОТЕРЯНА)
   buildMenu();
   
   window.addEventListener('click', () => {

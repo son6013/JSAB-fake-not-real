@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <!-- Запрещаем зум на телефоне -->
+    <meta name="viewport" content="width=device-width, maximum-scale=1.0, user-scalable=no">
+    <title>Rhythm Game</title>
+    <style>
+        body, html { margin: 0; padding: 0; overflow: hidden; background: #07070f; font-family: sans-serif; touch-action: none; }
+        canvas { display: block; }
+        
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background: rgba(7, 7, 15, 0.9); z-index: 10; transition: opacity 0.3s;
+            overflow-y: auto; padding: 20px; box-sizing: border-box;
+        }
+        .hidden { opacity: 0; pointer-events: none; }
+        
+        h1 { margin-bottom: 10px; font-size: 28px; text-align: center; }
+        p { color: #c9d0ff; margin-bottom: 20px; font-size: 16px; text-align: center; }
+
+        .btn {
+            padding: 12px 24px; font-size: 18px; font-weight: bold;
+            background: transparent; border-radius: 8px; cursor: pointer; transition: all 0.2s;
+            margin: 10px; width: 80%; max-width: 300px;
+        }
+        .btn-cyan { color: #00e5ff; border: 2px solid #00e5ff; box-shadow: 0 0 15px #00e5ff; text-shadow: 0 0 5px #00e5ff; }
+        .btn-cyan:hover { background: #00e5ff; color: #07070f; box-shadow: 0 0 30px #00e5ff; }
+
+        .btn-restart { color: #ff2bd6; border: 2px solid #ff2bd6; box-shadow: 0 0 15px #ff2bd6; text-shadow: 0 0 5px #ff2bd6; }
+        .btn-restart:hover { background: #ff2bd6; color: #07070f; box-shadow: 0 0 30px #ff2bd6; }
+        
+        .btn-win { color: #b6ff3b; border: 2px solid #b6ff3b; box-shadow: 0 0 15px #b6ff3b; text-shadow: 0 0 5px #b6ff3b; }
+        .btn-win:hover { background: #b6ff3b; color: #07070f; box-shadow: 0 0 30px #b6ff3b; }
+
+        #ui-layer {
+            position: absolute; top: 20px; left: 20px;
+            color: white; font-family: monospace; font-size: 24px;
+            text-shadow: 0 0 10px #00e5ff; pointer-events: none; z-index: 5;
+        }
+
+        #level-list {
+            display: flex; flex-wrap: wrap; justify-content: center;
+            gap: 15px; max-width: 800px; margin-top: 10px;
+        }
+        .level-card {
+            background: rgba(0, 229, 255, 0.1); border: 2px solid #00e5ff;
+            border-radius: 10px; padding: 15px; width: 100%; max-width: 250px;
+            text-align: center; cursor: pointer; transition: all 0.2s;
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+        }
+        .level-card:hover { background: rgba(0, 229, 255, 0.3); box-shadow: 0 0 20px #00e5ff; }
+        .level-card h3 { margin: 0 0 5px 0; color: #fff; font-size: 18px; }
+        .level-card span { color: #ff2bd6; font-size: 14px; font-weight: bold; }
+
+        /* === МОБИЛЬНОЕ УПРАВЛЕНИЕ === */
+        #mobile-controls {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 20; display: none; /* Скрыто по умолчанию */
+        }
+        
+        /* Показываем кнопки только на тач-экранах */
+        @media (pointer: coarse) {
+            #mobile-controls { display: block; }
+        }
+
+        .d-pad {
+            position: absolute; bottom: 30px; left: 30px;
+            width: 150px; height: 150px;
+            pointer-events: auto;
+        }
+        .d-btn {
+            position: absolute; background: rgba(0, 229, 255, 0.15);
+            border: 2px solid rgba(0, 229, 255, 0.5); border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+        }
+        .d-btn.active { background: rgba(0, 229, 255, 0.5); box-shadow: 0 0 20px #00e5ff; }
+        
+        .d-up { top: 0; left: 50px; width: 50px; height: 50px; }
+        .d-down { bottom: 0; left: 50px; width: 50px; height: 50px; }
+        .d-left { top: 50px; left: 0; width: 50px; height: 50px; }
+        .d-right { top: 50px; right: 0; width: 50px; height: 50px; }
+
+        #dash-btn {
+            position: absolute; bottom: 40px; right: 40px;
+            width: 100px; height: 100px; border-radius: 50%;
+            background: rgba(255, 43, 214, 0.15); border: 2px solid rgba(255, 43, 214, 0.6);
+            color: #ff2bd6; font-weight: bold; font-size: 16px;
+            box-shadow: 0 0 15px rgba(255, 43, 214, 0.4);
+            pointer-events: auto; display: flex; justify-content: center; align-items: center;
+            user-select: none;
+        }
+        #dash-btn.active { background: rgba(255, 43, 214, 0.5); box-shadow: 0 0 30px #ff2bd6; }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="ui-layer" class="hidden">
+        HP: <span id="hp-display" style="color: #ff2bd6;">❤❤❤❤</span>
+    </div>
+
+    <!-- МОБИЛЬНЫЕ КНОПКИ -->
+    <div id="mobile-controls">
+        <div class="d-pad">
+            <div class="d-btn d-up" id="btn-w"></div>
+            <div class="d-btn d-down" id="btn-s"></div>
+            <div class="d-btn d-left" id="btn-a"></div>
+            <div class="d-btn d-right" id="btn-d"></div>
+        </div>
+        <div id="dash-btn">DASH</div>
+    </div>
+
+    <!-- ГЛАВНОЕ МЕНЮ -->
+    <div id="upload-overlay" class="overlay">
+        <h1 style="color: #ff2bd6; text-shadow: 0 0 20px #ff2bd6;">JSAB Clone</h1>
+        <p>Выбери уровень или загрузи свой трек</p>
+        
+        <div id="level-list"></div>
+
+        <div style="margin-top: 20px;">
+            <input type="file" id="audio-upload" accept="audio/*" style="display: none;">
+            <button class="btn btn-cyan" id="upload-btn">Загрузить свой MP3</button>
+        </div>
+    </div>
+
+    <!-- Экраны победы и смерти -->
+    <div id="win-overlay" class="overlay hidden">
+        <h1 style="color: #b6ff3b; text-shadow: 0 0 20px #b6ff3b;">Ты победил :D!!</h1>
+        <p>Трек закончился, а ты выжил!</p>
+        <button class="btn btn-win" id="win-restart-btn">В главное меню</button>
+    </div>
+
+    <div id="death-overlay" class="overlay hidden">
+        <h1 style="color: #00e5ff; text-shadow: 0 0 20px #00e5ff;">УБИТ</h1>
+        <p>Ты потратил все 4 жизни</p>
+        <button class="btn btn-restart" id="restart-btn">Попробовать снова</button>
+        <button class="btn btn-cyan" id="death-menu-btn">В главное меню</button>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="viewport.js"></script>
+    <script src="player.js"></script>
+    <script src="obstacles.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>

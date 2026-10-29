@@ -10,6 +10,7 @@
   const uploadOverlay = document.getElementById('upload-overlay');
   const deathOverlay = document.getElementById('death-overlay');
   const winOverlay = document.getElementById('win-overlay');
+  const diffOverlay = document.getElementById('difficulty-overlay');
   const fileInput = document.getElementById('audio-upload');
   const uploadBtn = document.getElementById('upload-btn');
   const restartBtn = document.getElementById('restart-btn');
@@ -22,6 +23,20 @@
   const qteOverlay = document.getElementById('qte-overlay');
   const qteBox = document.getElementById('qte-box');
 
+  document.getElementById('btn-easy').addEventListener('click', () => startGameWithDifficulty('easy'));
+  document.getElementById('btn-medium').addEventListener('click', () => startGameWithDifficulty('medium'));
+  document.getElementById('btn-hard').addEventListener('click', () => startGameWithDifficulty('hard'));
+
+  let currentDifficulty = 'medium';
+  let tempAudioBuffer = null;
+
+  function startGameWithDifficulty(diff) {
+    currentDifficulty = diff;
+    audioBuffer = tempAudioBuffer;
+    diffOverlay.classList.add('hidden');
+    setupGameAndPlay();
+  }
+
   // === МОБИЛЬНОЕ УПРАВЛЕНИЕ ===
   function bindTouchControls() {
     const bindBtn = (id, key) => {
@@ -31,6 +46,11 @@
         e.preventDefault(); 
         player.keys[key] = true;
         btn.style.background = 'rgba(0, 229, 255, 0.8)'; 
+        
+        // Если это комбо-режим, передаем нажатую букву
+        if (isComboActive) {
+          checkComboInput(key.toUpperCase());
+        }
       });
       const release = (e) => {
         e.preventDefault();
@@ -65,7 +85,6 @@
   }
   bindTouchControls();
 
-  // === НАСТРОЙКИ УРОВНЕЙ ===
   const levelsData = [
     { name: "Рыгмифон", file: "music/track1.mp3", difficulty: "Легко" },
     { name: "Фрутагер.аер", file: "music/track2.mp3", difficulty: "Средне" },
@@ -100,12 +119,18 @@
   let isTrackEnded = false;
   let winTimer = 0;
 
-  // === ПЕРЕМЕННЫЕ ДЛЯ ВИРУСА ===
+  // Вирусы (Средний)
   let virusTimer = 15; 
   let isVirusActive = false;
   let virusClicks = 5;
   let virusTimeLeft = 0;
   let virusCooldown = 0; 
+
+  // Комбо (Сложный)
+  let isComboActive = false;
+  let comboTimeLeft = 0;
+  let comboSequence = []; 
+  let comboIndex = 0; 
 
   function buildMenu() {
     levelList.innerHTML = "";
@@ -129,9 +154,7 @@
       const arrayBuffer = await response.arrayBuffer();
       menuBuffer = await audioCtx.decodeAudioData(arrayBuffer);
       playMenuMusic();
-    } catch (err) {
-      console.warn("Музыка меню не загружена.");
-    }
+    } catch (err) { console.warn("Музыка меню не загружена."); }
   }
 
   function playMenuMusic() {
@@ -146,11 +169,7 @@
   }
 
   function stopMenuMusic() {
-    if (menuSource) {
-      try { menuSource.stop(); } catch(e){}
-      menuSource.disconnect();
-      menuSource = null;
-    }
+    if (menuSource) { try { menuSource.stop(); } catch(e){} menuSource.disconnect(); menuSource = null; }
   }
 
   async function loadTrackFromPath(path) {
@@ -161,9 +180,8 @@
       const response = await fetch(path);
       if (!response.ok) throw new Error(`Файл ${path} не найден`);
       const arrayBuffer = await response.arrayBuffer();
-      audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-      
-      setupGameAndPlay();
+      tempAudioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+      showDifficultyScreen();
     } catch (err) {
       console.error(err);
       alert("Ошибка! Проверь, что файл лежит в папке music.");
@@ -181,8 +199,8 @@
       uploadBtn.innerText = "Загрузка...";
       uploadBtn.disabled = true;
       const arrayBuffer = await file.arrayBuffer();
-      audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-      setupGameAndPlay();
+      tempAudioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+      showDifficultyScreen();
     } catch (err) {
       console.error(err);
       alert("Ошибка загрузки файла!");
@@ -190,6 +208,13 @@
       uploadBtn.disabled = false;
     }
   });
+
+  function showDifficultyScreen() {
+    uploadBtn.innerText = "Загрузить свой MP3";
+    uploadBtn.disabled = false;
+    uploadOverlay.classList.add('hidden');
+    diffOverlay.classList.remove('hidden');
+  }
 
   function setupGameAndPlay() {
     stopMenuMusic(); 
@@ -199,13 +224,8 @@
       analyser.fftSize = 256;
       dataArray = new Uint8Array(analyser.frequencyBinCount);
     }
-    
-    uploadOverlay.classList.add('hidden');
     qteOverlay.classList.add('hidden');
     uiLayer.classList.remove('hidden');
-    uploadBtn.innerText = "Загрузить свой MP3";
-    uploadBtn.disabled = false;
-    
     resetGameState();
     startMusic();
   }
@@ -221,14 +241,7 @@
     source.buffer = audioBuffer;
     source.connect(analyser);
     analyser.connect(audioCtx.destination);
-    
-    source.onended = () => {
-      if (!isDead && !isTrackEnded) {
-        isTrackEnded = true;
-        winTimer = 10.0; 
-      }
-    };
-
+    source.onended = () => { if (!isDead && !isTrackEnded) { isTrackEnded = true; winTimer = 10.0; } };
     source.start(0);
     isPlaying = true;
     isTrackEnded = false;
@@ -236,15 +249,21 @@
 
   function resetGameState() {
     isDead = false; obstacles = []; particles = []; spawnTimer = 0; shakeTime = 0;
-    hp = 4; invulnTimer = 0; boredomTimer = 0; isHardcore = false; isTrackEnded = false;
-    virusTimer = 15; isVirusActive = false; virusCooldown = 0;
+    
+    if (currentDifficulty === 'easy') { hp = 4; virusTimer = 9999; }
+    else if (currentDifficulty === 'medium') { hp = 4; virusTimer = 15; }
+    else if (currentDifficulty === 'hard') { hp = 3; virusTimer = 5 + Math.random() * 5; }
+
+    invulnTimer = 0; boredomTimer = 0; isHardcore = false; isTrackEnded = false;
+    isVirusActive = false; virusCooldown = 0; isComboActive = false;
     qteOverlay.classList.add('hidden');
+    
     player.x = C.field.width / 2; player.y = C.field.height / 2; player.vx = 0; player.vy = 0;
     updateHpDisplay(); deathOverlay.classList.add('hidden'); winOverlay.classList.add('hidden');
   }
 
   function resetToMenu() {
-    stopGameMusic(); isTrackEnded = false; isDead = false; isVirusActive = false;
+    stopGameMusic(); isTrackEnded = false; isDead = false; isVirusActive = false; isComboActive = false;
     body.classList.add('in-menu');
     uploadOverlay.classList.remove('hidden'); deathOverlay.classList.add('hidden'); winOverlay.classList.add('hidden'); uiLayer.classList.add('hidden'); qteOverlay.classList.add('hidden');
     fileInput.value = "";
@@ -258,29 +277,93 @@
 
   function updateHpDisplay() {
     let hearts = "";
-    for (let i = 0; i < 4; i++) hearts += (i < hp) ? "❤" : "🖤";
+    let maxHp = currentDifficulty === 'hard' ? 3 : 4;
+    for (let i = 0; i < maxHp; i++) hearts += (i < hp) ? "❤" : "🖤";
     hpDisplay.innerText = hearts;
   }
 
+  // === СПАВН ВИРУСОВ И КОМБО ===
   function spawnVirus() {
-    isVirusActive = true;
-    virusClicks = 5;
-    virusTimeLeft = 3.0; 
-    
-    // Рандомная позиция
-    const rx = 20 + Math.random() * 60; 
-    const ry = 20 + Math.random() * 60; 
-    
-    qteBox.style.position = 'absolute';
-    qteBox.style.left = `${rx}%`;
-    qteBox.style.top = `${ry}%`;
-    qteBox.style.transform = 'translate(-50%, -50%) scale(1)';
-    
-    qteBox.innerText = virusClicks;
+    if (currentDifficulty === 'hard') {
+      // ХАРДКОР: Цепочка букв
+      isComboActive = true;
+      comboTimeLeft = 0.8; // 0.8 сек на ОДНУ букву
+      comboIndex = 0;
+      comboSequence = [];
+      
+      const keys = ['W', 'A', 'S', 'D'];
+      // Генерируем цепочку из 4 случайных букв
+      for (let i = 0; i < 4; i++) {
+        comboSequence.push(keys[Math.floor(Math.random() * keys.length)]);
+      }
+
+      qteBox.style.position = 'absolute';
+      qteBox.style.left = '50%';
+      qteBox.style.top = '50%';
+      qteBox.style.transform = 'translate(-50%, -50%) scale(1)';
+      qteBox.style.borderRadius = '20px';
+      qteBox.style.borderColor = '#ffaa00';
+      qteBox.style.width = '150px';
+      qteBox.style.height = '150px';
+      qteBox.style.fontSize = '100px'; // Огромная буква
+      qteBox.style.background = 'rgba(0,0,0,0.9)';
+      
+      updateComboDisplay();
+
+    } else {
+      // СРЕДНИЙ: 5 кликов
+      isVirusActive = true;
+      virusClicks = 5;
+      virusTimeLeft = 3.0; 
+      const rx = 20 + Math.random() * 60; 
+      const ry = 20 + Math.random() * 60; 
+      qteBox.style.position = 'absolute';
+      qteBox.style.left = `${rx}%`;
+      qteBox.style.top = `${ry}%`;
+      qteBox.style.transform = 'translate(-50%, -50%) scale(1)';
+      qteBox.innerText = virusClicks;
+      qteBox.style.borderRadius = '20px';
+      qteBox.style.borderColor = '#ffaa00';
+      qteBox.style.width = '120px';
+      qteBox.style.height = '120px';
+      qteBox.style.fontSize = '60px';
+      qteBox.style.background = 'rgba(0, 0, 0, 0.8)';
+      qteBox.style.color = '#fff';
+    }
     qteOverlay.classList.remove('hidden');
+    shakeTime = 0.2; shakePower = 5;
+  }
+
+  function updateComboDisplay() {
+    // Показываем только ТЕКУЩУЮ букву
+    qteBox.innerHTML = `<span style="color: #fff; text-shadow: 0 0 20px #ffaa00;">${comboSequence[comboIndex]}</span>`;
+  }
+
+  function checkComboInput(key) {
+    if (!isComboActive) return;
     
-    shakeTime = 0.2;
-    shakePower = 5;
+    if (key === comboSequence[comboIndex]) {
+      // Правильная буква
+      comboIndex++;
+      
+      if (comboIndex >= comboSequence.length) {
+        // Вся цепочка пройдена!
+        isComboActive = false;
+        qteOverlay.classList.add('hidden');
+        virusCooldown = 10; 
+        for (let i = 0; i < 30; i++) {
+          const angle = Math.random() * Math.PI * 2; const speed = 200 + Math.random() * 400;
+          particles.push({ x: C.field.width / 2, y: C.field.height / 2, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 0.8, color: '#b6ff3b' });
+        }
+      } else {
+        // Есть еще буквы - сбрасываем таймер и показываем следующую
+        comboTimeLeft = 0.8; 
+        updateComboDisplay();
+      }
+    } else {
+      // Неправильная буква - мгновенный провал
+      failVirus();
+    }
   }
 
   function handleVirusClick(e) {
@@ -289,7 +372,6 @@
 
     virusClicks--;
     qteBox.innerText = virusClicks;
-    
     qteBox.style.transform = 'translate(-50%, -50%) scale(0.8)';
     setTimeout(() => qteBox.style.transform = 'translate(-50%, -50%) scale(1)', 50);
 
@@ -297,25 +379,27 @@
       isVirusActive = false;
       qteOverlay.classList.add('hidden');
       virusCooldown = 10; 
-      
       for (let i = 0; i < 20; i++) {
         const angle = Math.random() * Math.PI * 2; const speed = 100 + Math.random() * 300;
-        particles.push({ 
-          x: C.field.width / 2, y: C.field.height / 2, 
-          vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, 
-          life: 0.8, color: '#ffaa00' 
-        });
+        particles.push({ x: C.field.width / 2, y: C.field.height / 2, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 0.8, color: '#ffaa00' });
       }
     }
   }
 
   qteBox.addEventListener('pointerdown', handleVirusClick);
+  
   window.addEventListener('keydown', (e) => {
-    if (e.code === 'Space' && isVirusActive) handleVirusClick();
+    if (isComboActive) {
+      if (['KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(e.code)) {
+        checkComboInput(e.code.replace('Key', ''));
+      }
+    } else if (e.code === 'Space' && isVirusActive) {
+      handleVirusClick();
+    }
   });
 
   function failVirus() {
-    isVirusActive = false;
+    isVirusActive = false; isComboActive = false;
     qteOverlay.classList.add('hidden');
     hp--; updateHpDisplay(); shakeTime = 0.5; shakePower = 20; virusCooldown = 10;
     if (hp <= 0) triggerDeath();
@@ -323,7 +407,10 @@
 
   function spawnObstacle() {
     if (!window.Obstacle) return;
-    const speedMult = isHardcore ? 1.2 : 1.0;
+    let speedMult = isHardcore ? 1.2 : 1.0;
+    if (currentDifficulty === 'easy') speedMult *= 0.7;
+    if (currentDifficulty === 'hard') speedMult *= 1.3;
+
     const rand = Math.random();
     if (rand < 0.5) {
       const fromLeft = Math.random() > 0.5;
@@ -387,24 +474,28 @@
     while (accumulator >= C.loop.fixedDt && steps < C.loop.maxStepsPerFrame) {
       const dt = C.loop.fixedDt;
 
-      // ЛОГИКА ВИРУСА (СПАВН, ТАЙМЕР, ПРОВАЛ)
-      if (isPlaying && !isDead && !isTrackEnded && !isVirusActive) {
+      if (isPlaying && !isDead && !isTrackEnded && !isVirusActive && !isComboActive) {
         if (virusCooldown > 0) {
           virusCooldown -= dt;
         } else {
           virusTimer -= dt;
           if (virusTimer <= 0) {
             spawnVirus();
-            virusTimer = 15 + Math.random() * 5; 
+            if (currentDifficulty === 'hard') virusTimer = 8 + Math.random() * 10; 
+            else virusTimer = 15 + Math.random() * 5; 
           }
         }
       }
 
       if (isVirusActive) {
         virusTimeLeft -= dt;
-        if (virusTimeLeft <= 0) {
-          failVirus(); // Штраф
-        }
+        if (virusTimeLeft <= 0) failVirus(); 
+      }
+      
+      // ТАЙМЕР КОМБО (0.8 сек на одну букву)
+      if (isComboActive) {
+        comboTimeLeft -= dt;
+        if (comboTimeLeft <= 0) failVirus();
       }
 
       if (isTrackEnded) {
@@ -478,6 +569,12 @@
     if (isVirusActive) {
       viewport.ctx.fillStyle = '#ffaa00'; viewport.ctx.font = 'bold 24px sans-serif'; viewport.ctx.textAlign = 'center';
       viewport.ctx.fillText(`ВИРУС: ${virusTimeLeft.toFixed(1)}s`, C.field.width / 2, 80);
+    }
+    
+    // Показываем таймер для текущей буквы комбо
+    if (isComboActive) {
+      viewport.ctx.fillStyle = '#b6ff3b'; viewport.ctx.font = 'bold 24px sans-serif'; viewport.ctx.textAlign = 'center';
+      viewport.ctx.fillText(`ЖМИ: ${comboTimeLeft.toFixed(1)}s`, C.field.width / 2, 80);
     }
 
     if (isPlaying && !isDead && !isTrackEnded) {

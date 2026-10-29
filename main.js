@@ -66,13 +66,15 @@
   }
   bindTouchControls();
 
-  // === ТВОИ НАЗВАНИЯ ТРЕКОВ (КАК НА СКРИНШОТЕ) ===
+  // === ТВОИ НАЗВАНИЯ В МЕНЮ, НО ФАЙЛЫ TRACK 1-3 ===
   const levelsData = [
-    { name: "Музыка меню", file: "music/Меню.mp3", difficulty: "Меню" },
-    { name: "Рыгмифон", file: "music/Рыгмифон.mp3", difficulty: "Легко" },
-    { name: "Фрутагер.аер", file: "music/Фрутагер.аер.mp3", difficulty: "Средне" },
-    { name: "СЕГРЕЙ РОМАНЦЕВ!!?", file: "music/СЕГРЕЙ РОМАНЦЕВ!!?.mp3", difficulty: "Хардкор" }
+    { name: "Рыгмифон", file: "music/track1.mp3", difficulty: "Легко" },
+    { name: "Фрутагер.аер", file: "music/track2.mp3", difficulty: "Средне" },
+    { name: "СЕГРЕЙ РОМАНЦЕВ!!?", file: "music/track3.mp3", difficulty: "Хардкор" }
   ];
+
+  // Музыка меню
+  const menuMusicFile = "music/menu_theme.mp3"; 
 
   let audioCtx = null;
   let analyser = null;
@@ -118,17 +120,13 @@
   async function loadMenuMusic() {
     if (!audioCtx) return;
     try {
-      // Ищем трек меню в массиве
-      const menuTrack = levelsData.find(l => l.difficulty === "Меню");
-      if (!menuTrack) return;
-
-      const response = await fetch(menuTrack.file);
+      const response = await fetch(menuMusicFile);
       if (!response.ok) throw new Error("Нет файла");
       const arrayBuffer = await response.arrayBuffer();
       menuBuffer = await audioCtx.decodeAudioData(arrayBuffer);
       playMenuMusic();
     } catch (err) {
-      console.warn("Музыка меню не загружена:", err);
+      console.warn("Музыка меню не загружена.");
     }
   }
 
@@ -165,7 +163,7 @@
       setupGameAndPlay();
     } catch (err) {
       console.error(err);
-      alert("Ошибка! Проверь, что файл лежит в папке music и называется точно как в коде (с учетом пробелов и регистра).");
+      alert("Ошибка! Проверь, что файл лежит в папке music.");
       uploadBtn.innerText = "Загрузить свой MP3";
       uploadBtn.disabled = false;
     }

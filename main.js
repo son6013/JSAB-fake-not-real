@@ -6,6 +6,7 @@
   const player = new window.Player();
 
   // UI
+  const body = document.body;
   const uploadOverlay = document.getElementById('upload-overlay');
   const deathOverlay = document.getElementById('death-overlay');
   const winOverlay = document.getElementById('win-overlay');
@@ -18,7 +19,6 @@
   const uiLayer = document.getElementById('ui-layer');
   const hpDisplay = document.getElementById('hp-display');
   
-  // QTE UI (Вирус)
   const qteOverlay = document.getElementById('qte-overlay');
   const qteBox = document.getElementById('qte-box');
 
@@ -100,14 +100,13 @@
   let isTrackEnded = false;
   let winTimer = 0;
 
-  // === ПЕРЕМЕННЫЕ ДЛЯ ВИРУСА (QTE) ===
+  // === ПЕРЕМЕННЫЕ ДЛЯ ВИРУСА ===
   let virusTimer = 15; 
   let isVirusActive = false;
   let virusClicks = 5;
   let virusTimeLeft = 0;
   let virusCooldown = 0; 
 
-  // ВОТ ЭТА ФУНКЦИЯ ОТВЕЧАЕТ ЗА КАРТОЧКИ УРОВНЕЙ
   function buildMenu() {
     levelList.innerHTML = "";
     levelsData.forEach(level => {
@@ -183,7 +182,6 @@
       uploadBtn.disabled = true;
       const arrayBuffer = await file.arrayBuffer();
       audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-      
       setupGameAndPlay();
     } catch (err) {
       console.error(err);
@@ -195,6 +193,7 @@
 
   function setupGameAndPlay() {
     stopMenuMusic(); 
+    body.classList.remove('in-menu');
     if (!analyser) {
       analyser = audioCtx.createAnalyser();
       analyser.fftSize = 256;
@@ -238,18 +237,15 @@
   function resetGameState() {
     isDead = false; obstacles = []; particles = []; spawnTimer = 0; shakeTime = 0;
     hp = 4; invulnTimer = 0; boredomTimer = 0; isHardcore = false; isTrackEnded = false;
-    
-    virusTimer = 15;
-    isVirusActive = false;
-    virusCooldown = 0;
+    virusTimer = 15; isVirusActive = false; virusCooldown = 0;
     qteOverlay.classList.add('hidden');
-    
     player.x = C.field.width / 2; player.y = C.field.height / 2; player.vx = 0; player.vy = 0;
     updateHpDisplay(); deathOverlay.classList.add('hidden'); winOverlay.classList.add('hidden');
   }
 
   function resetToMenu() {
     stopGameMusic(); isTrackEnded = false; isDead = false; isVirusActive = false;
+    body.classList.add('in-menu');
     uploadOverlay.classList.remove('hidden'); deathOverlay.classList.add('hidden'); winOverlay.classList.add('hidden'); uiLayer.classList.add('hidden'); qteOverlay.classList.add('hidden');
     fileInput.value = "";
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -271,15 +267,16 @@
     virusClicks = 5;
     virusTimeLeft = 3.0; 
     
-    const rx = 30 + Math.random() * 20; 
-    const ry = 30 + Math.random() * 20; 
+    // Рандомная позиция
+    const rx = 20 + Math.random() * 60; 
+    const ry = 20 + Math.random() * 60; 
     
-    qteOverlay.style.left = `${rx}%`;
-    qteOverlay.style.top = `${ry}%`;
+    qteBox.style.position = 'absolute';
+    qteBox.style.left = `${rx}%`;
+    qteBox.style.top = `${ry}%`;
+    qteBox.style.transform = 'translate(-50%, -50%) scale(1)';
     
     qteBox.innerText = virusClicks;
-    qteBox.style.transform = 'scale(1)';
-    qteBox.style.background = 'rgba(255, 43, 214, 0.2)';
     qteOverlay.classList.remove('hidden');
     
     shakeTime = 0.2;
@@ -293,10 +290,8 @@
     virusClicks--;
     qteBox.innerText = virusClicks;
     
-    qteBox.style.transform = 'scale(0.8)';
-    setTimeout(() => qteBox.style.transform = 'scale(1)', 50);
-    qteBox.style.background = 'rgba(255, 255, 255, 0.5)';
-    setTimeout(() => qteBox.style.background = 'rgba(255, 43, 214, 0.2)', 100);
+    qteBox.style.transform = 'translate(-50%, -50%) scale(0.8)';
+    setTimeout(() => qteBox.style.transform = 'translate(-50%, -50%) scale(1)', 50);
 
     if (virusClicks <= 0) {
       isVirusActive = false;
@@ -308,7 +303,7 @@
         particles.push({ 
           x: C.field.width / 2, y: C.field.height / 2, 
           vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, 
-          life: 0.8, color: '#ff2bd6' 
+          life: 0.8, color: '#ffaa00' 
         });
       }
     }
@@ -322,16 +317,8 @@
   function failVirus() {
     isVirusActive = false;
     qteOverlay.classList.add('hidden');
-    
-    hp--; 
-    updateHpDisplay();
-    shakeTime = 0.5;
-    shakePower = 20;
-    virusCooldown = 10;
-    
-    if (hp <= 0) {
-      triggerDeath();
-    }
+    hp--; updateHpDisplay(); shakeTime = 0.5; shakePower = 20; virusCooldown = 10;
+    if (hp <= 0) triggerDeath();
   }
 
   function spawnObstacle() {
@@ -400,6 +387,7 @@
     while (accumulator >= C.loop.fixedDt && steps < C.loop.maxStepsPerFrame) {
       const dt = C.loop.fixedDt;
 
+      // ЛОГИКА ВИРУСА (СПАВН, ТАЙМЕР, ПРОВАЛ)
       if (isPlaying && !isDead && !isTrackEnded && !isVirusActive) {
         if (virusCooldown > 0) {
           virusCooldown -= dt;
@@ -412,30 +400,13 @@
         }
       }
 
-// ... (все начало файла до функции spawnVirus остается без изменений)
+      if (isVirusActive) {
+        virusTimeLeft -= dt;
+        if (virusTimeLeft <= 0) {
+          failVirus(); // Штраф
+        }
+      }
 
-  function spawnVirus() {
-    isVirusActive = true;
-    virusClicks = 5;
-    virusTimeLeft = 3.0; 
-    
-    // Рандомное появление по экрану (в процентах, чтобы работало на разных разрешениях)
-    const rx = 10 + Math.random() * 80; // от 10% до 90% ширины
-    const ry = 10 + Math.random() * 80; // от 10% до 90% высоты
-    
-    qteBox.style.position = 'absolute';
-    qteBox.style.left = `${rx}%`;
-    qteBox.style.top = `${ry}%`;
-    qteBox.style.transform = 'translate(-50%, -50%) scale(1)'; // Центрируем относительно точки
-    
-    qteBox.innerText = virusClicks;
-    qteOverlay.classList.remove('hidden');
-    
-    shakeTime = 0.2;
-    shakePower = 5;
-  }
-
-// ... (остальной код без изменений)
       if (isTrackEnded) {
         winTimer -= dt;
         if (winTimer <= 0) {
@@ -505,7 +476,7 @@
     }
 
     if (isVirusActive) {
-      viewport.ctx.fillStyle = '#ff2bd6'; viewport.ctx.font = 'bold 24px sans-serif'; viewport.ctx.textAlign = 'center';
+      viewport.ctx.fillStyle = '#ffaa00'; viewport.ctx.font = 'bold 24px sans-serif'; viewport.ctx.textAlign = 'center';
       viewport.ctx.fillText(`ВИРУС: ${virusTimeLeft.toFixed(1)}s`, C.field.width / 2, 80);
     }
 
@@ -523,7 +494,6 @@
     requestAnimationFrame(loop);
   }
 
-  // ЗАПУСК МЕНЮ (ВОТ ЭТА СТРОЧКА БЫЛА ПОТЕРЯНА)
   buildMenu();
   
   window.addEventListener('click', () => {

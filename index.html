@@ -2,7 +2,6 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <!-- Запрещаем зум на телефоне -->
     <meta name="viewport" content="width=device-width, maximum-scale=1.0, user-scalable=no">
     <title>Rhythm Game</title>
     <style>
@@ -57,51 +56,34 @@
         /* === МОБИЛЬНОЕ УПРАВЛЕНИЕ === */
         #mobile-controls {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 20; display: none; /* Скрыто по умолчанию */
+            pointer-events: none; z-index: 20; display: none; 
         }
-        
-        /* Показываем кнопки только на тач-экранах */
-        @media (pointer: coarse) {
-            #mobile-controls { display: block; }
-        }
+        body:not(.in-menu) #mobile-controls { display: block; }
 
-        .d-pad {
-            position: absolute; bottom: 30px; left: 30px;
-            width: 150px; height: 150px;
-            pointer-events: auto;
-        }
-        .d-btn {
-            position: absolute; background: rgba(0, 229, 255, 0.15);
-            border: 2px solid rgba(0, 229, 255, 0.5); border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
-        }
+        .d-pad { position: absolute; bottom: 30px; left: 30px; width: 150px; height: 150px; pointer-events: auto; }
+        .d-btn { position: absolute; background: rgba(0, 229, 255, 0.15); border: 2px solid rgba(0, 229, 255, 0.5); border-radius: 10px; box-shadow: 0 0 10px rgba(0, 229, 255, 0.3); }
         .d-btn.active { background: rgba(0, 229, 255, 0.5); box-shadow: 0 0 20px #00e5ff; }
-        
         .d-up { top: 0; left: 50px; width: 50px; height: 50px; }
         .d-down { bottom: 0; left: 50px; width: 50px; height: 50px; }
         .d-left { top: 50px; left: 0; width: 50px; height: 50px; }
         .d-right { top: 50px; right: 0; width: 50px; height: 50px; }
 
         #dash-btn {
-            position: absolute; bottom: 40px; right: 40px;
-            width: 100px; height: 100px; border-radius: 50%;
+            position: absolute; bottom: 40px; right: 40px; width: 100px; height: 100px; border-radius: 50%;
             background: rgba(255, 43, 214, 0.15); border: 2px solid rgba(255, 43, 214, 0.6);
-            color: #ff2bd6; font-weight: bold; font-size: 16px;
-            box-shadow: 0 0 15px rgba(255, 43, 214, 0.4);
-            pointer-events: auto; display: flex; justify-content: center; align-items: center;
-            user-select: none;
+            color: #ff2bd6; font-weight: bold; font-size: 16px; box-shadow: 0 0 15px rgba(255, 43, 214, 0.4);
+            pointer-events: auto; display: flex; justify-content: center; align-items: center; user-select: none;
         }
         #dash-btn.active { background: rgba(255, 43, 214, 0.5); box-shadow: 0 0 30px #ff2bd6; }
     </style>
 </head>
-<body>
+<body class="in-menu">
     <canvas id="gameCanvas"></canvas>
 
     <div id="ui-layer" class="hidden">
         HP: <span id="hp-display" style="color: #ff2bd6;">❤❤❤❤</span>
     </div>
 
-    <!-- МОБИЛЬНЫЕ КНОПКИ -->
     <div id="mobile-controls">
         <div class="d-pad">
             <div class="d-btn d-up" id="btn-w"></div>
@@ -112,29 +94,41 @@
         <div id="dash-btn">DASH</div>
     </div>
 
-    <!-- ГЛАВНОЕ МЕНЮ -->
+    <!-- ГЛАВНОЕ МЕНЮ (ВОТ ТУТ БЫЛ ПОТЕРЯН #level-list) -->
     <div id="upload-overlay" class="overlay">
         <h1 style="color: #ff2bd6; text-shadow: 0 0 20px #ff2bd6;">JSAB Clone</h1>
         <p>Выбери уровень или загрузи свой трек</p>
         
-        <div id="level-list"></div>
-
+        <div id="level-list"></div> <!-- ЭТО КРИТИЧЕСКИ ВАЖНО! -->
+        
         <div style="margin-top: 20px;">
             <input type="file" id="audio-upload" accept="audio/*" style="display: none;">
             <button class="btn btn-cyan" id="upload-btn">Загрузить свой MP3</button>
         </div>
     </div>
 
-    <!-- Экраны победы и смерти -->
+    <!-- ОКНО QTE (ВИРУС) -->
+    <div id="qte-overlay" class="overlay hidden" style="background: rgba(0,0,0,0.7);">
+        <div id="qte-box" style="
+            width: 200px; height: 200px; 
+            border: 4px solid #ff2bd6; border-radius: 20px;
+            box-shadow: 0 0 50px #ff2bd6, inset 0 0 30px #ff2bd6;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 80px; font-weight: bold; color: #fff;
+            text-shadow: 0 0 20px #ff2bd6;
+            cursor: pointer; transition: transform 0.1s, background 0.1s;
+            user-select: none;
+        ">5</div>
+        <p style="margin-top: 20px; color: #ff2bd6; font-weight: bold; font-size: 20px;">УСПЕЙ НАЖАТЬ!</p>
+    </div>
+
     <div id="win-overlay" class="overlay hidden">
         <h1 style="color: #b6ff3b; text-shadow: 0 0 20px #b6ff3b;">Ты победил :D!!</h1>
-        <p>Трек закончился, а ты выжил!</p>
         <button class="btn btn-win" id="win-restart-btn">В главное меню</button>
     </div>
 
     <div id="death-overlay" class="overlay hidden">
         <h1 style="color: #00e5ff; text-shadow: 0 0 20px #00e5ff;">УБИТ</h1>
-        <p>Ты потратил все 4 жизни</p>
         <button class="btn btn-restart" id="restart-btn">Попробовать снова</button>
         <button class="btn btn-cyan" id="death-menu-btn">В главное меню</button>
     </div>

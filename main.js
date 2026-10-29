@@ -18,17 +18,16 @@
   const uiLayer = document.getElementById('ui-layer');
   const hpDisplay = document.getElementById('hp-display');
 
-  // === МОБИЛЬНОЕ УПРАВЛЕНИЕ (Pointer Events) ===
+  // === МОБИЛЬНОЕ УПРАВЛЕНИЕ ===
   function bindTouchControls() {
     const bindBtn = (id, key) => {
       const btn = document.getElementById(id);
       if (!btn) return;
       
-      // Используем pointerdown/up, они работают везде
       btn.addEventListener('pointerdown', (e) => {
-        e.preventDefault(); // Отменяем скролл/зум
+        e.preventDefault(); 
         player.keys[key] = true;
-        btn.style.background = 'rgba(0, 229, 255, 0.8)'; // Визуальный отклик
+        btn.style.background = 'rgba(0, 229, 255, 0.8)'; 
       });
 
       const release = (e) => {
@@ -38,7 +37,7 @@
       };
 
       btn.addEventListener('pointerup', release);
-      btn.addEventListener('pointerleave', release); // Если палец ушел с кнопки
+      btn.addEventListener('pointerleave', release); 
       btn.addEventListener('pointercancel', release);
     };
 
@@ -67,13 +66,13 @@
   }
   bindTouchControls();
 
-  // === НАСТРОЙКИ УРОВНЕЙ ===
+  // === ТВОИ НАЗВАНИЯ ТРЕКОВ (КАК НА СКРИНШОТЕ) ===
   const levelsData = [
-    { name: "Разогрев", file: "music/track1.mp3", difficulty: "Легко" },
-    { name: "Ночной драйв", file: "music/track2.mp3", difficulty: "Средне" },
-    { name: "БОСС", file: "music/track3.mp3", difficulty: "Хардкор" }
+    { name: "Музыка меню", file: "music/Меню.mp3", difficulty: "Меню" },
+    { name: "Рыгмифон", file: "music/Рыгмифон.mp3", difficulty: "Легко" },
+    { name: "Фрутагер.аер", file: "music/Фрутагер.аер.mp3", difficulty: "Средне" },
+    { name: "СЕГРЕЙ РОМАНЦЕВ!!?", file: "music/СЕГРЕЙ РОМАНЦЕВ!!?.mp3", difficulty: "Хардкор" }
   ];
-  const menuMusicFile = "music/menu_theme.mp3";
 
   let audioCtx = null;
   let analyser = null;
@@ -119,13 +118,17 @@
   async function loadMenuMusic() {
     if (!audioCtx) return;
     try {
-      const response = await fetch(menuMusicFile);
+      // Ищем трек меню в массиве
+      const menuTrack = levelsData.find(l => l.difficulty === "Меню");
+      if (!menuTrack) return;
+
+      const response = await fetch(menuTrack.file);
       if (!response.ok) throw new Error("Нет файла");
       const arrayBuffer = await response.arrayBuffer();
       menuBuffer = await audioCtx.decodeAudioData(arrayBuffer);
       playMenuMusic();
     } catch (err) {
-      console.warn("Музыка меню не загружена.");
+      console.warn("Музыка меню не загружена:", err);
     }
   }
 
@@ -162,7 +165,7 @@
       setupGameAndPlay();
     } catch (err) {
       console.error(err);
-      alert("Ошибка! Проверь, что файл лежит в папке music.");
+      alert("Ошибка! Проверь, что файл лежит в папке music и называется точно как в коде (с учетом пробелов и регистра).");
       uploadBtn.innerText = "Загрузить свой MP3";
       uploadBtn.disabled = false;
     }

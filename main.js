@@ -18,29 +18,28 @@
   const uiLayer = document.getElementById('ui-layer');
   const hpDisplay = document.getElementById('hp-display');
 
-  // === МОБИЛЬНОЕ УПРАВЛЕНИЕ ===
+  // === МОБИЛЬНОЕ УПРАВЛЕНИЕ (Pointer Events) ===
   function bindTouchControls() {
     const bindBtn = (id, key) => {
       const btn = document.getElementById(id);
       if (!btn) return;
       
-      const start = (e) => {
-        e.preventDefault();
+      // Используем pointerdown/up, они работают везде
+      btn.addEventListener('pointerdown', (e) => {
+        e.preventDefault(); // Отменяем скролл/зум
         player.keys[key] = true;
-        btn.classList.add('active');
-      };
-      const end = (e) => {
+        btn.style.background = 'rgba(0, 229, 255, 0.8)'; // Визуальный отклик
+      });
+
+      const release = (e) => {
         e.preventDefault();
         player.keys[key] = false;
-        btn.classList.remove('active');
+        btn.style.background = 'rgba(0, 229, 255, 0.15)';
       };
 
-      btn.addEventListener('touchstart', start, {passive: false});
-      btn.addEventListener('touchend', end, {passive: false});
-      btn.addEventListener('touchcancel', end, {passive: false});
-      btn.addEventListener('mousedown', start); // Для теста на ПК
-      btn.addEventListener('mouseup', end);
-      btn.addEventListener('mouseleave', end);
+      btn.addEventListener('pointerup', release);
+      btn.addEventListener('pointerleave', release); // Если палец ушел с кнопки
+      btn.addEventListener('pointercancel', release);
     };
 
     bindBtn('btn-w', 'w');
@@ -50,15 +49,20 @@
 
     const dashBtn = document.getElementById('dash-btn');
     if (dashBtn) {
-      const dashStart = (e) => { e.preventDefault(); player.tryDash(); dashBtn.classList.add('active'); };
-      const dashEnd = (e) => { e.preventDefault(); dashBtn.classList.remove('active'); };
+      dashBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        player.tryDash();
+        dashBtn.style.background = 'rgba(255, 43, 214, 0.8)';
+      });
       
-      dashBtn.addEventListener('touchstart', dashStart, {passive: false});
-      dashBtn.addEventListener('touchend', dashEnd, {passive: false});
-      dashBtn.addEventListener('touchcancel', dashEnd, {passive: false});
-      dashBtn.addEventListener('mousedown', dashStart);
-      dashBtn.addEventListener('mouseup', dashEnd);
-      dashBtn.addEventListener('mouseleave', dashEnd);
+      const dashRelease = (e) => {
+        e.preventDefault();
+        dashBtn.style.background = 'rgba(255, 43, 214, 0.15)';
+      };
+      
+      dashBtn.addEventListener('pointerup', dashRelease);
+      dashBtn.addEventListener('pointerleave', dashRelease);
+      dashBtn.addEventListener('pointercancel', dashRelease);
     }
   }
   bindTouchControls();

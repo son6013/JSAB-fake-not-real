@@ -17,25 +17,26 @@
   const levelList = document.getElementById('level-list');
   const uiLayer = document.getElementById('ui-layer');
   const hpDisplay = document.getElementById('hp-display');
+  
+  // QTE UI (Вирус)
+  const qteOverlay = document.getElementById('qte-overlay');
+  const qteBox = document.getElementById('qte-box');
 
   // === МОБИЛЬНОЕ УПРАВЛЕНИЕ ===
   function bindTouchControls() {
     const bindBtn = (id, key) => {
       const btn = document.getElementById(id);
       if (!btn) return;
-      
       btn.addEventListener('pointerdown', (e) => {
         e.preventDefault(); 
         player.keys[key] = true;
         btn.style.background = 'rgba(0, 229, 255, 0.8)'; 
       });
-
       const release = (e) => {
         e.preventDefault();
         player.keys[key] = false;
         btn.style.background = 'rgba(0, 229, 255, 0.15)';
       };
-
       btn.addEventListener('pointerup', release);
       btn.addEventListener('pointerleave', release); 
       btn.addEventListener('pointercancel', release);
@@ -53,12 +54,10 @@
         player.tryDash();
         dashBtn.style.background = 'rgba(255, 43, 214, 0.8)';
       });
-      
       const dashRelease = (e) => {
         e.preventDefault();
         dashBtn.style.background = 'rgba(255, 43, 214, 0.15)';
       };
-      
       dashBtn.addEventListener('pointerup', dashRelease);
       dashBtn.addEventListener('pointerleave', dashRelease);
       dashBtn.addEventListener('pointercancel', dashRelease);
@@ -66,15 +65,13 @@
   }
   bindTouchControls();
 
-  // === ТВОИ НАЗВАНИЯ В МЕНЮ, НО ФАЙЛЫ TRACK 1-3 ===
+  // === НАСТРОЙКИ УРОВНЕЙ ===
   const levelsData = [
     { name: "Рыгмифон", file: "music/track1.mp3", difficulty: "Легко" },
     { name: "Фрутагер.аер", file: "music/track2.mp3", difficulty: "Средне" },
     { name: "СЕГРЕЙ РОМАНЦЕВ!!?", file: "music/track3.mp3", difficulty: "Хардкор" }
   ];
-
-  // Музыка меню
-  const menuMusicFile = "music/menu_theme.mp3"; 
+  const menuMusicFile = "music/menu_theme.mp3";
 
   let audioCtx = null;
   let analyser = null;
@@ -102,6 +99,13 @@
   let hardcoreTextTimer = 0; 
   let isTrackEnded = false;
   let winTimer = 0;
+
+  // === ПЕРЕМЕННЫЕ ДЛЯ ВИРУСА (QTE) ===
+  let virusTimer = 15; // Первый вирус через 15 секунд
+  let isVirusActive = false;
+  let virusClicks = 5;
+  let virusTimeLeft = 0;
+  let virusCooldown = 0; // Чтобы вирусы не спавнились друг на друге
 
   function buildMenu() {
     levelList.innerHTML = "";
@@ -154,7 +158,6 @@
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       uploadBtn.innerText = "Загрузка...";
       uploadBtn.disabled = true;
-
       const response = await fetch(path);
       if (!response.ok) throw new Error(`Файл ${path} не найден`);
       const arrayBuffer = await response.arrayBuffer();
@@ -173,13 +176,13 @@
   fileInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     try {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       uploadBtn.innerText = "Загрузка...";
       uploadBtn.disabled = true;
       const arrayBuffer = await file.arrayBuffer();
       audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+      
       setupGameAndPlay();
     } catch (err) {
       console.error(err);
@@ -198,6 +201,7 @@
     }
     
     uploadOverlay.classList.add('hidden');
+    qteOverlay.classList.add('hidden');
     uiLayer.classList.remove('hidden');
     uploadBtn.innerText = "Загрузить свой MP3";
     uploadBtn.disabled = false;
@@ -233,13 +237,20 @@
   function resetGameState() {
     isDead = false; obstacles = []; particles = []; spawnTimer = 0; shakeTime = 0;
     hp = 4; invulnTimer = 0; boredomTimer = 0; isHardcore = false; isTrackEnded = false;
+    
+    // Сброс вируса
+    virusTimer = 15;
+    isVirusActive = false;
+    virusCooldown = 0;
+    qteOverlay.classList.add('hidden');
+    
     player.x = C.field.width / 2; player.y = C.field.height / 2; player.vx = 0; player.vy = 0;
     updateHpDisplay(); deathOverlay.classList.add('hidden'); winOverlay.classList.add('hidden');
   }
 
   function resetToMenu() {
-    stopGameMusic(); isTrackEnded = false; isDead = false;
-    uploadOverlay.classList.remove('hidden'); deathOverlay.classList.add('hidden'); winOverlay.classList.add('hidden'); uiLayer.classList.add('hidden');
+    stopGameMusic(); isTrackEnded = false; isDead = false; isVirusActive = false;
+    uploadOverlay.classList.remove('hidden'); deathOverlay.classList.add('hidden'); winOverlay.classList.add('hidden'); uiLayer.classList.add('hidden'); qteOverlay.classList.add('hidden');
     fileInput.value = "";
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (!menuBuffer) loadMenuMusic(); else playMenuMusic();
@@ -255,6 +266,82 @@
     hpDisplay.innerText = hearts;
   }
 
+  // === ЛОГИКА ВИРУСА ===
+  function spawnVirus() {
+    isVirusActive = true;
+    virusClicks = 5;
+    virusTimeLeft = 3.0; // 3 секунды на клики
+    
+    // Рандомная позиция на экране, чтобы не перекрывать кубик
+    const rx = 30 + Math.random() * 20; // 30-50% ширины
+    const ry = 30 + Math.random() * 20; // 30-50% высоты
+    
+    qteOverlay.style.left = `${rx}%`;
+    qteOverlay.style.top = `${ry}%`;
+    
+    qteBox.innerText = virusClicks;
+    qteBox.style.transform = 'scale(1)';
+    qteBox.style.background = 'rgba(255, 43, 214, 0.2)';
+    qteOverlay.classList.remove('hidden');
+    
+    // Небольшой скример при появлении
+    shakeTime = 0.2;
+    shakePower = 5;
+  }
+
+  function handleVirusClick(e) {
+    if (!isVirusActive) return;
+    if (e) e.preventDefault();
+
+    virusClicks--;
+    qteBox.innerText = virusClicks;
+    
+    // Анимация
+    qteBox.style.transform = 'scale(0.8)';
+    setTimeout(() => qteBox.style.transform = 'scale(1)', 50);
+    qteBox.style.background = 'rgba(255, 255, 255, 0.5)';
+    setTimeout(() => qteBox.style.background = 'rgba(255, 43, 214, 0.2)', 100);
+
+    if (virusClicks <= 0) {
+      // ВИРУС УНИЧТОЖЕН
+      isVirusActive = false;
+      qteOverlay.classList.add('hidden');
+      virusCooldown = 10; // Следующий не раньше чем через 10 сек
+      
+      // Эффект взрыва частиц
+      for (let i = 0; i < 20; i++) {
+        const angle = Math.random() * Math.PI * 2; const speed = 100 + Math.random() * 300;
+        particles.push({ 
+          x: C.field.width / 2, y: C.field.height / 2, 
+          vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, 
+          life: 0.8, color: '#ff2bd6' 
+        });
+      }
+    }
+  }
+
+  qteBox.addEventListener('pointerdown', handleVirusClick);
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && isVirusActive) handleVirusClick();
+  });
+
+  function failVirus() {
+    isVirusActive = false;
+    qteOverlay.classList.add('hidden');
+    
+    // Штраф: взрыв вируса
+    hp--; // Отнимаем 1 жизнь
+    updateHpDisplay();
+    shakeTime = 0.5;
+    shakePower = 20;
+    virusCooldown = 10;
+    
+    if (hp <= 0) {
+      triggerDeath();
+    }
+  }
+
+  // === ИГРОВАЯ ЛОГИКА ===
   function spawnObstacle() {
     if (!window.Obstacle) return;
     const speedMult = isHardcore ? 1.2 : 1.0;
@@ -321,6 +408,27 @@
     while (accumulator >= C.loop.fixedDt && steps < C.loop.maxStepsPerFrame) {
       const dt = C.loop.fixedDt;
 
+      // ЛОГИКА СПАВНА ВИРУСА
+      if (isPlaying && !isDead && !isTrackEnded && !isVirusActive) {
+        if (virusCooldown > 0) {
+          virusCooldown -= dt;
+        } else {
+          virusTimer -= dt;
+          if (virusTimer <= 0) {
+            spawnVirus();
+            virusTimer = 15 + Math.random() * 5; // Следующий через 15-20 секунд
+          }
+        }
+      }
+
+      // Обработка таймера вируса
+      if (isVirusActive) {
+        virusTimeLeft -= dt;
+        if (virusTimeLeft <= 0) {
+          failVirus();
+        }
+      }
+
       if (isTrackEnded) {
         winTimer -= dt;
         if (winTimer <= 0) {
@@ -382,10 +490,17 @@
       viewport.ctx.fillStyle = '#ff2bd6'; viewport.ctx.font = 'bold 40px sans-serif'; viewport.ctx.textAlign = 'center'; viewport.ctx.shadowBlur = 20; viewport.ctx.shadowColor = '#ff2bd6';
       viewport.ctx.fillText('Слишком скучно, добавлю сложности >:)', C.field.width / 2, C.field.height / 2); viewport.ctx.shadowBlur = 0;
     }
+    
     if (isTrackEnded) {
       viewport.ctx.fillStyle = '#b6ff3b'; viewport.ctx.font = 'bold 50px sans-serif'; viewport.ctx.textAlign = 'center'; viewport.ctx.shadowBlur = 30; viewport.ctx.shadowColor = '#b6ff3b';
       viewport.ctx.fillText('Ты победил :D!!', C.field.width / 2, C.field.height / 2 - 20); viewport.ctx.font = '24px sans-serif'; viewport.ctx.fillStyle = '#ffffff';
       viewport.ctx.fillText(`Меню через ${Math.ceil(winTimer)}...`, C.field.width / 2, C.field.height / 2 + 30); viewport.ctx.shadowBlur = 0;
+    }
+
+    // ВРЕМЯ ВИРУСА
+    if (isVirusActive) {
+      viewport.ctx.fillStyle = '#ff2bd6'; viewport.ctx.font = 'bold 24px sans-serif'; viewport.ctx.textAlign = 'center';
+      viewport.ctx.fillText(`ВИРУС: ${virusTimeLeft.toFixed(1)}s`, C.field.width / 2, 80);
     }
 
     if (isPlaying && !isDead && !isTrackEnded) {

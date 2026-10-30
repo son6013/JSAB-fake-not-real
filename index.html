@@ -31,6 +31,11 @@
         .btn-win { color: #b6ff3b; border: 2px solid #b6ff3b; box-shadow: 0 0 15px #b6ff3b; text-shadow: 0 0 5px #b6ff3b; }
         .btn-win:hover { background: #b6ff3b; color: #07070f; box-shadow: 0 0 30px #b6ff3b; }
 
+        .btn-easy { color: #b6ff3b; border: 2px solid #b6ff3b; box-shadow: 0 0 15px #b6ff3b; text-shadow: 0 0 5px #b6ff3b; }
+        .btn-easy:hover { background: #b6ff3b; color: #07070f; box-shadow: 0 0 30px #b6ff3b; }
+        .btn-hard { color: #ffaa00; border: 2px solid #ffaa00; box-shadow: 0 0 15px #ffaa00; text-shadow: 0 0 5px #ffaa00; }
+        .btn-hard:hover { background: #ffaa00; color: #07070f; box-shadow: 0 0 30px #ffaa00; }
+
         #ui-layer {
             position: absolute; top: 20px; left: 20px;
             color: white; font-family: monospace; font-size: 24px;
@@ -48,7 +53,6 @@
         .level-card h3 { margin: 0 0 5px 0; color: #fff; font-size: 18px; }
         .level-card span { color: #ff2bd6; font-size: 14px; font-weight: bold; }
 
-        /* === МОБИЛЬНОЕ УПРАВЛЕНИЕ === */
         #mobile-controls { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 20; display: none; }
         body:not(.in-menu) #mobile-controls { display: block; }
         .d-pad { position: absolute; bottom: 30px; left: 30px; width: 150px; height: 150px; pointer-events: auto; }
@@ -66,30 +70,19 @@
         }
         #dash-btn.active { background: rgba(255, 43, 214, 0.5); box-shadow: 0 0 30px #ff2bd6; }
 
-        /* === СТИЛЬ ВИРУСА === */
         @keyframes virusPulse {
             0% { border-color: #ffaa00; box-shadow: 0 0 30px #ffaa00, inset 0 0 20px #ffaa00; text-shadow: 0 0 20px #ffaa00; transform: scale(1); }
             50% { border-color: #ff0000; box-shadow: 0 0 60px #ff0000, inset 0 0 40px #ff0000; text-shadow: 0 0 40px #ff0000; transform: scale(1.05); }
             100% { border-color: #ffaa00; box-shadow: 0 0 30px #ffaa00, inset 0 0 20px #ffaa00; text-shadow: 0 0 20px #ffaa00; transform: scale(1); }
         }
 
-        #qte-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 15; /* Поверх канваса, но под мобильными кнопками */
-            display: flex; justify-content: center; align-items: center;
-        }
-        
+        #qte-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 15; display: flex; justify-content: center; align-items: center; }
         #qte-box {
-            width: 120px; height: 120px; /* Чуть меньше */
-            border: 4px solid #ffaa00; border-radius: 20px;
-            background: rgba(0, 0, 0, 0.8); /* Темный фон только у самой кнопки, для читаемости */
-            display: flex; justify-content: center; align-items: center;
-            font-size: 60px; font-weight: bold; color: #fff;
-            cursor: pointer; user-select: none; pointer-events: auto;
-            animation: virusPulse 0.8s infinite;
-            transition: transform 0.1s;
+            width: 120px; height: 120px; border: 4px solid #ffaa00; border-radius: 20px;
+            background: rgba(0, 0, 0, 0.8); display: flex; justify-content: center; align-items: center;
+            font-size: 60px; font-weight: bold; color: #fff; cursor: pointer; user-select: none; pointer-events: auto;
+            animation: virusPulse 0.8s infinite; transition: transform 0.1s;
         }
-        
         #qte-box:active { transform: scale(0.9) !important; }
     </style>
 </head>
@@ -110,7 +103,13 @@
         <div id="dash-btn">DASH</div>
     </div>
 
-    <!-- ГЛАВНОЕ МЕНЮ -->
+    <div id="difficulty-overlay" class="overlay hidden">
+        <h1 style="color: #fff;">Выбери сложность</h1>
+        <button class="btn btn-easy" id="btn-easy">Лёгкая (без вирусов)</button>
+        <button class="btn btn-cyan" id="btn-medium">Средняя (с вирусами)</button>
+        <button class="btn btn-hard" id="btn-hard">Хардкор (вирусы + скорость)</button>
+    </div>
+
     <div id="upload-overlay" class="overlay">
         <h1 style="color: #ff2bd6; text-shadow: 0 0 20px #ff2bd6;">JSAB Clone</h1>
         <p>Выбери уровень или загрузи свой трек</p>
@@ -121,7 +120,6 @@
         </div>
     </div>
 
-    <!-- ОКНО ВИРУСА (БЕЗ ТЕМНОГО ФОНА) -->
     <div id="qte-overlay" class="hidden">
         <div id="qte-box">5</div>
     </div>

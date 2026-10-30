@@ -602,3 +602,11 @@
 
   requestAnimationFrame(loop);
 })();
+buildMenu();
+
+window.addEventListener('click', () => {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    loadMenuMusic();
+  }
+}, { once: true });

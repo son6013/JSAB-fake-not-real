@@ -47,7 +47,6 @@
         player.keys[key] = true;
         btn.style.background = 'rgba(0, 229, 255, 0.8)'; 
         
-        // Если это комбо-режим, передаем нажатую букву
         if (isComboActive) {
           checkComboInput(key.toUpperCase());
         }
@@ -131,6 +130,15 @@
   let comboTimeLeft = 0;
   let comboSequence = []; 
   let comboIndex = 0; 
+  
+  // Предупреждение и замедление
+  let isWarningActive = false;
+  let warningTimer = 0;
+  let isSlowMotion = false;
+
+  // Буст
+  let boostTimer = 0;
+  let originalPlayerSpeed = 0; // Запомним изначальную скорость (на всякий случай)
 
   function buildMenu() {
     levelList.innerHTML = "";
@@ -256,6 +264,12 @@
 
     invulnTimer = 0; boredomTimer = 0; isHardcore = false; isTrackEnded = false;
     isVirusActive = false; virusCooldown = 0; isComboActive = false;
+    isWarningActive = false; isSlowMotion = false;
+    boostTimer = 0;
+    
+    // Сохраняем базовую скорость игрока (если она меняется)
+    originalPlayerSpeed = player.speed;
+    
     qteOverlay.classList.add('hidden');
     
     player.x = C.field.width / 2; player.y = C.field.height / 2; player.vx = 0; player.vy = 0;
@@ -263,7 +277,8 @@
   }
 
   function resetToMenu() {
-    stopGameMusic(); isTrackEnded = false; isDead = false; isVirusActive = false; isComboActive = false;
+    stopGameMusic(); isTrackEnded = false; isDead = false; isVirusActive = false; isComboActive = false; isWarningActive = false;
+    boostTimer = 0; player.speed = originalPlayerSpeed;
     body.classList.add('in-menu');
     uploadOverlay.classList.remove('hidden'); deathOverlay.classList.add('hidden'); winOverlay.classList.add('hidden'); uiLayer.classList.add('hidden'); qteOverlay.classList.add('hidden');
     fileInput.value = "";
@@ -282,60 +297,67 @@
     hpDisplay.innerText = hearts;
   }
 
-  // === СПАВН ВИРУСОВ И КОМБО ===
-  function spawnVirus() {
-    if (currentDifficulty === 'hard') {
-      // ХАРДКОР: Цепочка букв
-      isComboActive = true;
-      comboTimeLeft = 0.8; // 0.8 сек на ОДНУ букву
-      comboIndex = 0;
-      comboSequence = [];
-      
-      const keys = ['W', 'A', 'S', 'D'];
-      // Генерируем цепочку из 4 случайных букв
-      for (let i = 0; i < 4; i++) {
-        comboSequence.push(keys[Math.floor(Math.random() * keys.length)]);
-      }
+  // === ПРЕДУПРЕЖДЕНИЕ ===
+  function spawnWarning() {
+    isWarningActive = true;
+    warningTimer = 2.0; 
+    shakeTime = 0.5; 
+    shakePower = 10;
+  }
 
-      qteBox.style.position = 'absolute';
-      qteBox.style.left = '50%';
-      qteBox.style.top = '50%';
-      qteBox.style.transform = 'translate(-50%, -50%) scale(1)';
-      qteBox.style.borderRadius = '20px';
-      qteBox.style.borderColor = '#ffaa00';
-      qteBox.style.width = '150px';
-      qteBox.style.height = '150px';
-      qteBox.style.fontSize = '100px'; // Огромная буква
-      qteBox.style.background = 'rgba(0,0,0,0.9)';
-      
-      updateComboDisplay();
-
-    } else {
-      // СРЕДНИЙ: 5 кликов
-      isVirusActive = true;
-      virusClicks = 5;
-      virusTimeLeft = 3.0; 
-      const rx = 20 + Math.random() * 60; 
-      const ry = 20 + Math.random() * 60; 
-      qteBox.style.position = 'absolute';
-      qteBox.style.left = `${rx}%`;
-      qteBox.style.top = `${ry}%`;
-      qteBox.style.transform = 'translate(-50%, -50%) scale(1)';
-      qteBox.innerText = virusClicks;
-      qteBox.style.borderRadius = '20px';
-      qteBox.style.borderColor = '#ffaa00';
-      qteBox.style.width = '120px';
-      qteBox.style.height = '120px';
-      qteBox.style.fontSize = '60px';
-      qteBox.style.background = 'rgba(0, 0, 0, 0.8)';
-      qteBox.style.color = '#fff';
+  // === СПАВН КОМБО ===
+  function startCombo() {
+    isComboActive = true;
+    isSlowMotion = true; 
+    comboTimeLeft = 0.4; 
+    comboIndex = 0;
+    comboSequence = [];
+    
+    const keys = ['W', 'A', 'S', 'D'];
+    for (let i = 0; i < 4; i++) {
+      comboSequence.push(keys[Math.floor(Math.random() * keys.length)]);
     }
+
+    qteBox.style.position = 'absolute';
+    qteBox.style.left = '50%';
+    qteBox.style.top = '50%';
+    qteBox.style.transform = 'translate(-50%, -50%) scale(1)';
+    qteBox.style.borderRadius = '20px';
+    qteBox.style.borderColor = '#ffaa00';
+    qteBox.style.width = '150px';
+    qteBox.style.height = '150px';
+    qteBox.style.fontSize = '100px'; 
+    qteBox.style.background = 'rgba(0,0,0,0.9)';
+    
+    updateComboDisplay();
+    qteOverlay.classList.remove('hidden');
+  }
+
+  // === СПАВН ВИРУСА ===
+  function startVirus() {
+    isVirusActive = true;
+    virusClicks = 5;
+    virusTimeLeft = 3.0; 
+    const rx = 20 + Math.random() * 60; 
+    const ry = 20 + Math.random() * 60; 
+    qteBox.style.position = 'absolute';
+    qteBox.style.left = `${rx}%`;
+    qteBox.style.top = `${ry}%`;
+    qteBox.style.transform = 'translate(-50%, -50%) scale(1)';
+    qteBox.innerText = virusClicks;
+    qteBox.style.borderRadius = '20px';
+    qteBox.style.borderColor = '#ffaa00';
+    qteBox.style.width = '120px';
+    qteBox.style.height = '120px';
+    qteBox.style.fontSize = '60px';
+    qteBox.style.background = 'rgba(0, 0, 0, 0.8)';
+    qteBox.style.color = '#fff';
+    
     qteOverlay.classList.remove('hidden');
     shakeTime = 0.2; shakePower = 5;
   }
 
   function updateComboDisplay() {
-    // Показываем только ТЕКУЩУЮ букву
     qteBox.innerHTML = `<span style="color: #fff; text-shadow: 0 0 20px #ffaa00;">${comboSequence[comboIndex]}</span>`;
   }
 
@@ -343,25 +365,28 @@
     if (!isComboActive) return;
     
     if (key === comboSequence[comboIndex]) {
-      // Правильная буква
       comboIndex++;
       
       if (comboIndex >= comboSequence.length) {
-        // Вся цепочка пройдена!
+        // УСПЕХ! 
         isComboActive = false;
+        isSlowMotion = false;
         qteOverlay.classList.add('hidden');
         virusCooldown = 10; 
-        for (let i = 0; i < 30; i++) {
+        
+        // АКТИВАЦИЯ БУСТА (2 СЕКУНДЫ)
+        boostTimer = 2.0;
+        player.speed = originalPlayerSpeed * 1.5; // Ускоряем кубик
+        
+        for (let i = 0; i < 40; i++) {
           const angle = Math.random() * Math.PI * 2; const speed = 200 + Math.random() * 400;
-          particles.push({ x: C.field.width / 2, y: C.field.height / 2, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 0.8, color: '#b6ff3b' });
+          particles.push({ x: C.field.width / 2, y: C.field.height / 2, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 1.0, color: '#b6ff3b' });
         }
       } else {
-        // Есть еще буквы - сбрасываем таймер и показываем следующую
-        comboTimeLeft = 0.8; 
+        comboTimeLeft = 0.4; 
         updateComboDisplay();
       }
     } else {
-      // Неправильная буква - мгновенный провал
       failVirus();
     }
   }
@@ -399,7 +424,7 @@
   });
 
   function failVirus() {
-    isVirusActive = false; isComboActive = false;
+    isVirusActive = false; isComboActive = false; isSlowMotion = false;
     qteOverlay.classList.add('hidden');
     hp--; updateHpDisplay(); shakeTime = 0.5; shakePower = 20; virusCooldown = 10;
     if (hp <= 0) triggerDeath();
@@ -438,6 +463,7 @@
 
   function triggerDeath() {
     isDead = true; shakeTime = 0.4; shakePower = 15; stopGameMusic();
+    player.speed = originalPlayerSpeed; // Сбрасываем буст при смерти
     for (let i = 0; i < 30; i++) {
       const angle = Math.random() * Math.PI * 2; const speed = 100 + Math.random() * 600;
       particles.push({ x: player.x, y: player.y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 1.0, color: '#00e5ff' });
@@ -448,14 +474,17 @@
   function drawBackground() {
     const ctx = viewport.ctx;
     viewport.beginField();
-    ctx.fillStyle = pulse > 200 ? '#15102a' : C.colors.bg;
+    // Если буст - фон становится чуть более зеленым
+    ctx.fillStyle = boostTimer > 0 ? '#0f1f0a' : (pulse > 200 ? '#15102a' : C.colors.bg);
     ctx.fillRect(0, 0, C.field.width, C.field.height);
+    
     ctx.strokeStyle = C.colors.grid; ctx.lineWidth = 2; ctx.beginPath();
     for (let x = 0; x <= C.field.width; x += 64) { ctx.moveTo(x, 0); ctx.lineTo(x, C.field.height); }
     for (let y = 0; y <= C.field.height; y += 64) { ctx.moveTo(0, y); ctx.lineTo(C.field.width, y); }
     ctx.stroke();
-    ctx.strokeStyle = isHardcore ? '#ff2bd6' : C.colors.frame;
-    ctx.lineWidth = isHardcore ? 8 : 4 + (pulse / 50);
+    
+    ctx.strokeStyle = boostTimer > 0 ? '#b6ff3b' : (isHardcore ? '#ff2bd6' : C.colors.frame);
+    ctx.lineWidth = boostTimer > 0 ? 10 : (isHardcore ? 8 : 4 + (pulse / 50));
     ctx.strokeRect(0, 0, C.field.width, C.field.height);
   }
 
@@ -470,20 +499,45 @@
       pulse = bassSum / 10;
     } else { pulse = 0; }
 
+    let timeScale = isSlowMotion ? 0.25 : 1.0;
+
     let steps = 0;
     while (accumulator >= C.loop.fixedDt && steps < C.loop.maxStepsPerFrame) {
       const dt = C.loop.fixedDt;
+      const gameDt = dt * timeScale;
 
-      if (isPlaying && !isDead && !isTrackEnded && !isVirusActive && !isComboActive) {
+      // Логика буста
+      if (boostTimer > 0) {
+        boostTimer -= dt;
+        if (boostTimer <= 0) {
+          player.speed = originalPlayerSpeed; // Возвращаем скорость
+        }
+      }
+
+      // ЛОГИКА СПАВНА
+      if (isPlaying && !isDead && !isTrackEnded && !isVirusActive && !isComboActive && !isWarningActive) {
         if (virusCooldown > 0) {
           virusCooldown -= dt;
         } else {
           virusTimer -= dt;
           if (virusTimer <= 0) {
-            spawnVirus();
+            if (currentDifficulty === 'hard') {
+              spawnWarning(); 
+            } else {
+              startVirus();   
+            }
+            
             if (currentDifficulty === 'hard') virusTimer = 8 + Math.random() * 10; 
             else virusTimer = 15 + Math.random() * 5; 
           }
+        }
+      }
+
+      if (isWarningActive) {
+        warningTimer -= dt;
+        if (warningTimer <= 0) {
+          isWarningActive = false;
+          startCombo(); 
         }
       }
 
@@ -492,7 +546,6 @@
         if (virusTimeLeft <= 0) failVirus(); 
       }
       
-      // ТАЙМЕР КОМБО (0.8 сек на одну букву)
       if (isComboActive) {
         comboTimeLeft -= dt;
         if (comboTimeLeft <= 0) failVirus();
@@ -515,7 +568,7 @@
         } else { boredomTimer = 0; }
         if (isHardcore && hardcoreTextTimer > 0) hardcoreTextTimer -= dt;
 
-        spawnTimer -= dt;
+        spawnTimer -= gameDt;
         const spawnThreshold = isHardcore ? 0.4 : 0.8; 
         const shouldSpawn = isHardcore || (pulse > 180);
         if (shouldSpawn && spawnTimer <= 0) { spawnObstacle(); spawnTimer = spawnThreshold; }
@@ -527,18 +580,18 @@
         if (player.y > C.field.height - pSize) player.y = C.field.height - pSize;
 
         for (let i = obstacles.length - 1; i >= 0; i--) {
-          const obs = obstacles[i]; obs.update(dt);
+          const obs = obstacles[i]; obs.update(gameDt); 
           if (!player.isDashing && obs.collidesWith(player)) { takeDamage(); obs.dead = true; }
           if (obs.dead) obstacles.splice(i, 1);
         }
       }
 
       for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.95; p.vy *= 0.95; p.life -= dt;
+        const p = particles[i]; p.x += p.vx * gameDt; p.y += p.vy * gameDt; p.vx *= 0.95; p.vy *= 0.95; p.life -= gameDt;
         if (p.life <= 0) particles.splice(i, 1);
       }
       if (isTrackEnded) {
-        for (let i = obstacles.length - 1; i >= 0; i--) { obstacles[i].update(dt); if (obstacles[i].dead) obstacles.splice(i, 1); }
+        for (let i = obstacles.length - 1; i >= 0; i--) { obstacles[i].update(gameDt); if (obstacles[i].dead) obstacles.splice(i, 1); }
       }
       if (shakeTime > 0) shakeTime -= dt;
       accumulator -= C.loop.fixedDt; steps++;
@@ -552,7 +605,17 @@
 
     viewport.beginField(sx, sy);
     for (const obs of obstacles) obs.draw(viewport.ctx);
-    if (!isDead && !(invulnTimer > 0 && Math.floor(invulnTimer * 10) % 2 === 0)) player.draw(viewport.ctx);
+    
+    // Рисуем игрока (с эффектом буста)
+    if (!isDead && !(invulnTimer > 0 && Math.floor(invulnTimer * 10) % 2 === 0)) {
+      if (boostTimer > 0) {
+        viewport.ctx.shadowBlur = 40;
+        viewport.ctx.shadowColor = '#b6ff3b';
+      }
+      player.draw(viewport.ctx);
+      viewport.ctx.shadowBlur = 0; // Сбрасываем
+    }
+    
     for (const p of particles) { viewport.ctx.fillStyle = p.color; viewport.ctx.fillRect(p.x - 4, p.y - 4, 8, 8); }
 
     if (hardcoreTextTimer > 0) {
@@ -566,15 +629,28 @@
       viewport.ctx.fillText(`Меню через ${Math.ceil(winTimer)}...`, C.field.width / 2, C.field.height / 2 + 30); viewport.ctx.shadowBlur = 0;
     }
 
+    if (isWarningActive) {
+      viewport.ctx.fillStyle = '#ff0000'; viewport.ctx.font = 'bold 50px sans-serif'; viewport.ctx.textAlign = 'center';
+      viewport.ctx.shadowBlur = 30; viewport.ctx.shadowColor = '#ff0000';
+      viewport.ctx.fillText('ПРИГОТОВЬСЯ!', C.field.width / 2, C.field.height / 2);
+      viewport.ctx.shadowBlur = 0;
+    }
+
     if (isVirusActive) {
       viewport.ctx.fillStyle = '#ffaa00'; viewport.ctx.font = 'bold 24px sans-serif'; viewport.ctx.textAlign = 'center';
       viewport.ctx.fillText(`ВИРУС: ${virusTimeLeft.toFixed(1)}s`, C.field.width / 2, 80);
     }
     
-    // Показываем таймер для текущей буквы комбо
     if (isComboActive) {
       viewport.ctx.fillStyle = '#b6ff3b'; viewport.ctx.font = 'bold 24px sans-serif'; viewport.ctx.textAlign = 'center';
       viewport.ctx.fillText(`ЖМИ: ${comboTimeLeft.toFixed(1)}s`, C.field.width / 2, 80);
+    }
+
+    if (boostTimer > 0) {
+      viewport.ctx.fillStyle = '#b6ff3b'; viewport.ctx.font = 'bold 30px sans-serif'; viewport.ctx.textAlign = 'center';
+      viewport.ctx.shadowBlur = 20; viewport.ctx.shadowColor = '#b6ff3b';
+      viewport.ctx.fillText(`БУСТ! ${boostTimer.toFixed(1)}s`, C.field.width / 2, 130);
+      viewport.ctx.shadowBlur = 0;
     }
 
     if (isPlaying && !isDead && !isTrackEnded) {
